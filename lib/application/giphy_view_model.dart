@@ -20,6 +20,7 @@ class GiphyViewModel extends ChangeNotifier {
     return results;
   }
 
+  String? get query => _query;
   bool get isInitialState => _query == null;
   bool get isLastPage => (_gifs?.count ?? 0) < _pageLimit;
   int get nextOffset => (_gifs?.offset ?? 0) + (_gifs?.count ?? 0);

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
@@ -10,11 +12,9 @@ import '../core/injection/injection.dart';
 import '../domain/gif_object.dart';
 import '../domain/giphy_api_repository.dart';
 import '../domain/search_results.dart';
-import 'widgets/centered_network_image.dart';
-import 'widgets/gif_author.dart';
+import 'widgets/gif_card.dart';
+import 'widgets/live_search_bar.dart';
 import 'widgets/spacers.dart';
-
-typedef OnSearchFunction = void Function(String query);
 
 class GifsPage extends StatelessWidget {
   const GifsPage({super.key});
@@ -115,7 +115,7 @@ class _GifsBrowserState extends State<_GifsBrowser> {
                     ),
                     pagingController: _pagingController,
                     builderDelegate: PagedChildBuilderDelegate<GifObject>(
-                      itemBuilder: (_, item, __) => _GifCard(gifObject: item),
+                      itemBuilder: (_, item, __) => GifCard(gifObject: item),
                     ),
                   ),
               ],
@@ -159,7 +159,7 @@ class _GifsHeader implements SliverPersistentHeaderDelegate {
       Container(
         color: context.theme.colorScheme.background,
         padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: _GifsSearchBar(onSearch: onSearch),
+        child: LiveSearchBar(onSearch: onSearch),
       );
 
   @override
@@ -185,62 +185,6 @@ class _GifsHeader implements SliverPersistentHeaderDelegate {
   TickerProvider? get vsync => null;
 }
 
-class _GifsSearchBar extends StatefulWidget {
-  const _GifsSearchBar({super.key, required this.onSearch});
-
-  final OnSearchFunction onSearch;
-
-  @override
-  State<_GifsSearchBar> createState() => _GifsSearchBarState();
-}
-
-class _GifsSearchBarState extends State<_GifsSearchBar> {
-  final _textController = TextEditingController();
-  final FocusNode _searchFocus = FocusNode();
-
-  @override
-  void dispose() {
-    _textController.dispose();
-    _searchFocus.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: 'Type to search',
-              hintStyle: context.theme.textTheme.labelSmall?.copyWith(
-                height: 1,
-                color: Colors.grey,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-            controller: _textController,
-            focusNode: _searchFocus,
-            onSubmitted: (_) => _startSearch(),
-          ),
-        ),
-        IconButton(
-          onPressed: _startSearch,
-          icon: const Icon(Icons.search),
-        ),
-      ],
-    );
-  }
-
-  void _startSearch() {
-    _searchFocus.unfocus();
-    widget.onSearch(_textController.text);
-  }
-}
-
 /*
 There are a lot of packages for localization, f.e. easy_localization
  */
@@ -259,46 +203,6 @@ class _Hint extends StatelessWidget {
   }
 }
 
-class _GifCard extends StatelessWidget {
-  const _GifCard({super.key, required this.gifObject});
-
-  final GifObject gifObject;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      // It's enough for our goals.
-      // In big apps with complex navigation Navigator 2.0 should be used
-      // or packages like auto_route or go_router
-      onTap: () => Navigator.of(context).pushNamed(
-        '/details',
-        arguments: gifObject,
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          border: Border.all(),
-          borderRadius: const BorderRadius.all(Radius.circular(4)),
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              child: CenteredNetworkImage(imageUrl: gifObject.thumbnail.url),
-            ),
-            Text(
-              gifObject.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: context.theme.textTheme.bodyMedium,
-            ),
-            GifAuthor(authorName: gifObject.userName),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _StatsInfo extends StatelessWidget {
   const _StatsInfo({super.key});
 
@@ -307,6 +211,7 @@ class _StatsInfo extends StatelessWidget {
     // Use `select` to avoid unnecessary rebuilds
     final total = context.select<GiphyViewModel, int>((m) => m.totalImages);
     final loaded = context.select<GiphyViewModel, int>((m) => m.loadedImages);
-    return Center(child: Text(' $total/$loaded images'));
+    final query = context.select<GiphyViewModel, String?>((m) => m.query);
+    return Center(child: Text('${query ?? ''} $total/$loaded images'));
   }
 }

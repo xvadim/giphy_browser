@@ -18,7 +18,7 @@ abstract class ApiModule {
       ..interceptors.addAll(
         [
           ApiKeyInterceptor(),
-          if (kDebugMode) LoggerInterceptor(),
+          // if (kDebugMode) LoggerInterceptor(),
         ],
       );
   }
