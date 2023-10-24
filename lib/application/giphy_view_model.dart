@@ -6,20 +6,29 @@ import '../domain/search_results.dart';
 class GiphyViewModel extends ChangeNotifier {
   GiphyViewModel(this._repository);
 
-  Future<void> searchGifs({
-    required String query,
+  Future<SearchResults> searchGifs({
     required int offset,
   }) async {
     final SearchResults results = await _repository.searchGifs(
-      query: query,
+      query: _query ?? '',
       offset: offset,
       limit: _pageLimit,
     );
-    gifs = results;
+    _gifs = results;
+    return results;
+  }
+
+  bool get isInitialState => _query == null;
+  bool get isLastPage => (_gifs?.count ?? 0) < _pageLimit;
+  int get nextOffset => (_gifs?.offset ?? 0) + (_gifs?.count ?? 0);
+
+  void updateQuery(String query) {
+    _query = query;
     notifyListeners();
   }
 
-  SearchResults? gifs;
+  String? _query;
+  SearchResults? _gifs;
 
   final GiphyApiRepository _repository;
   static const _pageLimit = 16;

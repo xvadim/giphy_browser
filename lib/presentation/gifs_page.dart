@@ -1,6 +1,6 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 
 import 'package:provider/provider.dart';
 
@@ -12,6 +12,7 @@ import '../domain/giphy_api_repository.dart';
 import '../domain/search_results.dart';
 import 'widgets/centered_network_image.dart';
 import 'widgets/gif_author.dart';
+import 'widgets/spacers.dart';
 
 typedef OnSearchFunction = void Function(String query);
 
@@ -48,12 +49,38 @@ class GifsPage extends StatelessWidget {
  But slivers are more powerful (f.e. see a persistent header)
  and should be used for complex scrolls.
  */
-class _GifsBrowser extends StatelessWidget {
+class _GifsBrowser extends StatefulWidget {
   const _GifsBrowser({super.key});
 
   @override
+  State<_GifsBrowser> createState() => _GifsBrowserState();
+}
+
+class _GifsBrowserState extends State<_GifsBrowser> {
+  final PagingController<int, GifObject> _pagingController = PagingController(
+    firstPageKey: 0,
+    invisibleItemsThreshold: 4,
+  );
+
+  @override
+  void initState() {
+    _pagingController.addPageRequestListener((pageKey) {
+      _fetchPage(pageKey);
+    });
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _pagingController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final gifs = context.select<GiphyViewModel, SearchResults?>((m) => m.gifs);
+    final isInitialState = context.select<GiphyViewModel, bool>(
+      (m) => m.isInitialState,
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: CustomScrollView(
@@ -63,28 +90,47 @@ class _GifsBrowser extends StatelessWidget {
             floating: true,
             delegate: _GifsHeader(
               height: 52,
-              onSearch: (query) => context.read<GiphyViewModel>().searchGifs(
-                    query: query,
-                    offset: 0,
-                  ),
+              onSearch: (query) {
+                context.read<GiphyViewModel>().updateQuery(query);
+                _pagingController.refresh();
+              },
             ),
           ),
-          if (gifs != null)
-            SliverGrid.builder(
+          if (isInitialState)
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(child: _Hint()),
+            ),
+          if (!isInitialState)
+            PagedSliverGrid(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 mainAxisSpacing: 8,
                 crossAxisCount: 2,
                 crossAxisSpacing: 8,
-                childAspectRatio: 190 / 320,
+                childAspectRatio: 2 / 3,
               ),
-              itemBuilder: (context, index) => _GifCard(
-                gifObject: gifs.gifObjects[index],
+              pagingController: _pagingController,
+              builderDelegate: PagedChildBuilderDelegate<GifObject>(
+                itemBuilder: (_, item, __) => _GifCard(gifObject: item),
               ),
-              itemCount: gifs.count,
             ),
         ],
       ),
     );
+  }
+
+  Future<void> _fetchPage(int pageKey) async {
+    try {
+      final viewModel = context.read<GiphyViewModel>();
+      final SearchResults gifs = await viewModel.searchGifs(offset: pageKey);
+      if (viewModel.isLastPage) {
+        _pagingController.appendLastPage(gifs.gifObjects);
+      } else {
+        _pagingController.appendPage(gifs.gifObjects, viewModel.nextOffset);
+      }
+    } catch (error) {
+      _pagingController.error = error;
+    }
   }
 }
 
@@ -182,6 +228,24 @@ class _GifsSearchBarState extends State<_GifsSearchBar> {
   void _startSearch() {
     _searchFocus.unfocus();
     widget.onSearch(_textController.text);
+  }
+}
+
+/*
+There are a lot of packages for localization, f.e. easy_localization
+ */
+class _Hint extends StatelessWidget {
+  const _Hint({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      children: [
+        Text('Start typing to search.'),
+        sb16,
+        Text('HINT: tap an image to open details.')
+      ],
+    );
   }
 }
 
