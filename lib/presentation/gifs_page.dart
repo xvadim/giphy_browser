@@ -83,37 +83,45 @@ class _GifsBrowserState extends State<_GifsBrowser> {
     );
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: CustomScrollView(
-        slivers: [
-          SliverPersistentHeader(
-            pinned: false,
-            floating: true,
-            delegate: _GifsHeader(
-              height: 52,
-              onSearch: (query) {
-                context.read<GiphyViewModel>().updateQuery(query);
-                _pagingController.refresh();
-              },
+      child: Column(
+        children: [
+          Expanded(
+            child: CustomScrollView(
+              slivers: [
+                SliverPersistentHeader(
+                  pinned: false,
+                  floating: true,
+                  delegate: _GifsHeader(
+                    height: 52,
+                    onSearch: (query) {
+                      context.read<GiphyViewModel>().updateQuery(query);
+                      _pagingController.refresh();
+                    },
+                  ),
+                ),
+                if (isInitialState)
+                  const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(child: _Hint()),
+                  ),
+                if (!isInitialState)
+                  PagedSliverGrid(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      mainAxisSpacing: 8,
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 8,
+                      childAspectRatio: 2 / 3,
+                    ),
+                    pagingController: _pagingController,
+                    builderDelegate: PagedChildBuilderDelegate<GifObject>(
+                      itemBuilder: (_, item, __) => _GifCard(gifObject: item),
+                    ),
+                  ),
+              ],
             ),
           ),
-          if (isInitialState)
-            const SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(child: _Hint()),
-            ),
-          if (!isInitialState)
-            PagedSliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                mainAxisSpacing: 8,
-                crossAxisCount: 2,
-                crossAxisSpacing: 8,
-                childAspectRatio: 2 / 3,
-              ),
-              pagingController: _pagingController,
-              builderDelegate: PagedChildBuilderDelegate<GifObject>(
-                itemBuilder: (_, item, __) => _GifCard(gifObject: item),
-              ),
-            ),
+          const _StatsInfo(),
         ],
       ),
     );
@@ -133,6 +141,8 @@ class _GifsBrowserState extends State<_GifsBrowser> {
     }
   }
 }
+
+// Put all these classes here as they are used only in this page
 
 class _GifsHeader implements SliverPersistentHeaderDelegate {
   const _GifsHeader({required this.height, required this.onSearch});
@@ -286,5 +296,17 @@ class _GifCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _StatsInfo extends StatelessWidget {
+  const _StatsInfo({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // Use `select` to avoid unnecessary rebuilds
+    final total = context.select<GiphyViewModel, int>((m) => m.totalImages);
+    final loaded = context.select<GiphyViewModel, int>((m) => m.loadedImages);
+    return Center(child: Text(' $total/$loaded images'));
   }
 }
