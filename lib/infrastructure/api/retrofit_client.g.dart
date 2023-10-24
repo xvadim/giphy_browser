@@ -22,14 +22,16 @@ class _RetrofitClient implements RetrofitClient {
   Future<SearchResultsDto> searchGifs(
     String query,
     int offset,
-    int limit,
-  ) async {
+    int limit, [
+    CancelToken? cancelToken,
+  ]) async {
     const _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{
       r'q': query,
       r'offset': offset,
       r'limit': limit,
     };
+    queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
     final Map<String, dynamic>? _data = null;
     final _result = await _dio
@@ -43,6 +45,7 @@ class _RetrofitClient implements RetrofitClient {
               '/search',
               queryParameters: queryParameters,
               data: _data,
+              cancelToken: cancelToken,
             )
             .copyWith(
                 baseUrl: _combineBaseUrls(

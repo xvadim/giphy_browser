@@ -81,6 +81,7 @@ class _LiveSearchBarState extends State<LiveSearchBar> {
     if (stopLiveSearchMode) {
       _isLoveSearchMode = false;
       _liveTimer?.cancel();
+      _liveTimer = null;
       _searchFocus.unfocus();
     }
 

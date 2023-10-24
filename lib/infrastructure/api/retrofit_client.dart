@@ -16,6 +16,7 @@ abstract class RetrofitClient {
   Future<SearchResultsDto> searchGifs(
     @Query('q') String query,
     @Query('offset') int offset,
-    @Query('limit') int limit,
-  );
+    @Query('limit') int limit, [
+    @CancelRequest() CancelToken? cancelToken,
+  ]);
 }

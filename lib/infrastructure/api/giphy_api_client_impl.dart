@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 
 import '../../core/api/giphy_api_client.dart';
@@ -13,9 +14,19 @@ class GiphyApiClientImpl implements GiphyApiClient {
     required String query,
     required int offset,
     required int limit,
-  }) {
-    return _retrofitClient.searchGifs(query, offset, limit);
+  }) async {
+    _cancelToken?.cancel();
+    _cancelToken = CancelToken();
+    final result = await _retrofitClient.searchGifs(
+      query,
+      offset,
+      limit,
+      _cancelToken,
+    );
+    _cancelToken = null;
+    return result;
   }
 
   final RetrofitClient _retrofitClient;
+  CancelToken? _cancelToken;
 }
