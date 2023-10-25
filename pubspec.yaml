@@ -41,6 +41,7 @@ dependencies:
   injectable: ^2.3.2
   json_annotation: ^4.8.1
   logger: ^2.0.2+1
+  mocktail: ^1.0.1
   provider: ^6.0.5
   retrofit: ^4.0.3
 
