@@ -23,18 +23,15 @@ class _LiveSearchBarState extends State<LiveSearchBar> {
   @override
   void initState() {
     super.initState();
-    _searchFocus.addListener(() {
-      if (_searchFocus.hasFocus) {
-        _isLoveSearchMode = false;
-        _liveTimer = Timer(const Duration(milliseconds: _liveSearchDelay), () {
-          _isLoveSearchMode = true;
-        });
-      }
-    });
 
     _textController.addListener(() {
-      if (_isLoveSearchMode) {
-        _startSearch(stopLiveSearchMode: false);
+      if (_textController.text.isNotEmpty) {
+        _liveTimer ??=
+            Timer(const Duration(milliseconds: _liveSearchDelay), () {
+          if (_textController.text.isNotEmpty) {
+            _startSearch(stopMode: false);
+          }
+        });
       }
     });
   }
@@ -77,17 +74,16 @@ class _LiveSearchBarState extends State<LiveSearchBar> {
     );
   }
 
-  void _startSearch({bool stopLiveSearchMode = true}) {
-    if (stopLiveSearchMode) {
-      _isLoveSearchMode = false;
-      _liveTimer?.cancel();
-      _liveTimer = null;
+  void _startSearch({bool stopMode = true}) {
+    _liveTimer?.cancel();
+    _liveTimer = null;
+
+    if (stopMode) {
       _searchFocus.unfocus();
     }
 
     widget.onSearch(_textController.text);
   }
 
-  bool _isLoveSearchMode = false;
   static const int _liveSearchDelay = 500; // in ms
 }
